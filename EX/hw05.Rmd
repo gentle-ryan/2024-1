@@ -1,0 +1,51 @@
+---
+title: "Untitled"
+output: html_document
+date: "2024-05-26"
+---
+
+```{r cars}
+df <- read.csv("hw05.csv")
+df
+df1 <- apply(df[, 1:15], 2, function(x) {sum(x*df[, 16])})
+df2 <- apply(df[, 1:15], 2, function(x) {sum(abs(x-1)*df[, 16])})
+(a <- (abs(df1-df2)^2) /16)
+```
+```{r}
+library(tidyverse)
+```
+
+```{r}
+df2 <- read.csv("hw052.csv")
+CT = sum(df2$data)^2 / 27
+
+df2 %>% group_by(X1) %>% summarise(sum = sum(data)^2) %>% summarise((sum(sum)/9) - CT)
+df2 %>% group_by(X2) %>% summarise(sum = sum(data)^2) %>% summarise((sum(sum)/9) - CT)
+df2 %>% group_by(X3) %>% summarise(sum = sum(data)^2) %>% summarise((sum(sum)/9) - CT)
+df2 %>% group_by(X4) %>% summarise(sum = sum(data)^2) %>% summarise((sum(sum)/9) - CT)
+df2 %>% group_by(X5) %>% summarise(sum = sum(data)^2) %>% summarise((sum(sum)/9) - CT)
+df2 %>% group_by(X6) %>% summarise(sum = sum(data)^2) %>% summarise((sum(sum)/9) - CT)
+df2 %>% group_by(X7) %>% summarise(sum = sum(data)^2) %>% summarise((sum(sum)/9) - CT)
+df2 %>% group_by(X8) %>% summarise(sum = sum(data)^2) %>% summarise((sum(sum)/9) - CT)
+df2 %>% group_by(X9) %>% summarise(sum = sum(data)^2) %>% summarise((sum(sum)/9) - CT)
+df2 %>% group_by(X10) %>% summarise(sum = sum(data)^2) %>% summarise((sum(sum)/9) - CT)
+df2 %>% group_by(X11) %>% summarise(sum = sum(data)^2) %>% summarise((sum(sum)/9) - CT)
+df2 %>% group_by(X12) %>% summarise(sum = sum(data)^2) %>% summarise((sum(sum)/9) - CT)
+df2 %>% group_by(X13) %>% summarise(sum = sum(data)^2) %>% summarise((sum(sum)/9) - CT)
+```
+```{r}
+a <- c(0.246, 0.082, 0.24, 1.308, 2.215, 1.182, 0.997, 0.93)
+b <- c(2, 2, 2, 2, 2, 2, 4, 10)
+(a/b) / 0.093
+c <- 2.228*sqrt(0.24925/9)
+
+D <- df2 %>% group_by(X8) %>% summarise(sum = sum(data)) 
+F1 <- df2 %>% group_by(X9) %>% summarise(sum = sum(data)) 
+G <- df2 %>% group_by(X11) %>% summarise(sum = sum(data))
+```
+```{r}
+k <- G$sum[3]/9 + D$sum[2]/9 + F1$sum[1]/9 - 2*(sum(df2$data)/27)
+p <- 2.228*sqrt(0.24925/(27/7))
+k+p; k-p
+```
+

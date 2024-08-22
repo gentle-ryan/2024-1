@@ -1,0 +1,44 @@
+---
+title: "Untitled"
+output: html_document
+date: "2024-03-28"
+---
+
+
+```{r cars}
+level <- c(rep(1,5), rep(2,5), rep(3,5))
+a <- c(49,73,58,38,42,31,40,43,44,20,46,41,58,31,65)
+table <- cbind(level, a)
+table <- data.frame(table)
+```
+
+
+```{r pressure, echo=FALSE}
+table$con1 <- ifelse(table$level == 1, -1, ifelse(table$level == 2, 0, 1))
+
+table$con2 <- ifelse(table$level == 1, -1, ifelse(table$level == 2, 2, -1))
+```
+# 분산분석표
+```{r}
+
+aov1 <- aov(a~level)
+summary(aov1)
+```
+```{r}
+out1 = lm(a~con1+con2, data = table)
+summary(out1)
+```
+# 중회귀분석의 분산분석표
+```{r}
+out2 <- aov(out1)
+summary(out2)
+```
+검정결과가 동일하다. 
+
+# 순서
+```{r}
+out3 = lm(a~con2+con1, data = table)
+out4 <- aov(out3)
+summary(out4)
+```
+순서에 상관이 없이 동일하다.

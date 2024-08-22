@@ -1,0 +1,171 @@
+---
+title: "Lecture 7 R Practice"
+author: "SANG JIN LEE"
+date: "2024-05-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(DescTools)
+```
+
+------------------------------------------------------------------------
+
+### 다음의 데이터는 2020년에 보고된 153개의 국가의 국민 행복도 지수(Score)와 1인당 국내 총생산(GDP.per.capita)이다.
+
+```{r}
+dat <- read.csv("worldbank2020.csv")[,3:4]
+n = nrow(dat) 
+head(dat)
+```
+
+```{r warning=FALSE}
+dat %>% arrange(Score)  %>% 
+  ggplot(aes(GDP.per.capita, Score)) + geom_point()
+```
+
+```{r}
+r = cor(dat[,1], dat[,2])
+round(r, 3)
+```
+
+### The distribution of $Z=\frac{1}{2} \log(\frac{1+r}{1-r})$ can be approximated by a normal distribution with mean $\frac{1}{2} \log(\frac{1+\rho}{1-\rho})$ and variance 1/(n-3).
+
+```{r}
+z = DescTools::FisherZ(r) # same as (1/2)*log((1+r)/(1-r))
+
+# Asymptotic CI for normal population
+CI.tr = DescTools::FisherZInv( z + qnorm(c(0.025, 1-0.025))/sqrt(n-3) )
+CI.tr
+```
+
+------------------------------------------------------------------------
+
+## Nonparametric bootstrap
+
+```{r}
+set.seed(2020)
+B = 1999 # number of bootstrap samples
+C = 25   # number of second-level boostrap samples
+
+r.boot = replicate(B, {
+  boot.id = sample(1:n,n, replace = TRUE)
+  
+  r = cor(dat[boot.id,1], dat[boot.id,2])
+  
+  # second-level bootstrap 
+  r2.boot = replicate(C, {
+    boot.id2 = sample(boot.id,n, replace = TRUE)
+    cor(dat[boot.id2,1], dat[boot.id2,2])
+  }) 
+  r.se = sd(r2.boot)
+  
+  c(r,r.se)
+})
+
+r.boot = t(r.boot)
+colnames(r.boot) = c("r*","sd(r*)")
+r.boot = as.data.frame(r.boot)
+head(r.boot)
+```
+
+```{r warning=FALSE}
+# Bootstrap distribution of r
+r.boot %>% 
+  ggplot(aes(x = `r*`)) + 
+  geom_histogram(aes(y = ..density..), color = "white",bins = 100)
+```
+
+```{r}
+r = cor(dat[,1],dat[,2]) 
+r.vec = c(r, sd(r.boot$`r*`))
+names(r.vec) = c("r","se(r)")
+r.vec
+```
+
+------------------------------------------------------------------------
+
+### 1) Bootstrap-t method
+
+The $b^{\text{th}}$ bootstrap t-pivot quantity is $t^{(b)} = \frac{\hat{\theta}^{(b)}-\hat{\theta}}{\hat{se}(\hat{\theta}^{(b)})}$.
+
+The estimate $\hat{se}(\hat{\theta}^{(b)})$ is obtained from second-level bootstrap samples.
+
+95% CI: $\hat{\theta} - t_{b, 0.975} \times \hat{se}(\hat{\theta}) < \theta < \hat{\theta} - t_{b, 0.025} \times \hat{se}(\hat{\theta})$
+
+```{r}
+t.pivot = (r.boot$`r*` - r.vec[1]) / r.boot$`sd(r*)`
+(CI.t = r.vec[1] - r.vec[2] * quantile(t.pivot, probs = c(1-0.025, 0.025)))
+```
+
+------------------------------------------------------------------------
+
+### 2) Percentile method
+
+95% CI: $\hat{\theta}_{b, 0.025} < \theta < \hat{\theta}_{b, 0.975}$
+
+```{r}
+(CI.pct = quantile(r.boot$`r*`, probs = c(0.025, 1-0.025)))
+```
+
+------------------------------------------------------------------------
+
+### 3) Residual method
+
+The $b^{\text{th}}$ bootstrap residual is $\epsilon^{(b)} = \hat{\theta}^{(b)} - \hat{\theta}$.
+
+95% CI: $\hat{\theta}-\epsilon_{b, 0.975} < \theta < \hat{\theta}-\epsilon_{b, 0.025}$, or equivalently, $2\hat{\theta} - \hat{\theta}_{b, 0.975} < \theta < 2\hat{\theta} - \hat{\theta}_{b, 0.025}$
+
+```{r}
+(CI.resid = 2*r.vec[1] - quantile(r.boot$`r*`, probs = c(1-0.025, 0.025)))
+```
+
+------------------------------------------------------------------------
+
+### 4) Bias-corrected and accelerated (BCa) method
+
+Estimating bias-correction factor:
+
+$\hat{z}_0 = \Phi^{-1}\{\frac{1}{B} \sum_{b=1}^{B} I(\hat{\theta}^{(b)}<\hat{\theta})\}$
+
+```{r}
+b.factor = qnorm( sum(r.boot$`r*` <= r.vec[1])/(B+1))
+b.factor <- -0.6192797
+```
+
+Estimating acceleration factor:
+
+$\hat{a} = \frac{\sum_{i=1}^{n} ( \hat{\theta}_{(.)} - \hat{\theta}_{(i)} )^3}{6\{ \sum_{i=1}^{n} ( \hat{\theta}_{(.)} - \hat{\theta}_{(i)} )^2 \}^{3/2} }$
+
+```{r}
+r.jack = vector(length = n)
+for (i in 1:n){r.jack[i] =  cor(dat[-i,1], dat[-i,2]) }
+acc = sum((r.jack- mean(r.jack))^3) / (6*sum((r.jack- mean(r.jack))^2)^(3/2))
+acc
+```
+
+95% CI: $\hat{\theta}_{b, \Phi(z_L)} < \theta < \hat{\theta}_{b, \Phi(z_U)}$
+
+where $Z_L = \frac{\hat{z}_0 - z_{0.975}} {1-\hat{a}(\hat{z}_0 - z_{0.975})} + \hat{z}_0$ and $Z_U = \frac{\hat{z}_0 + z_{0.975}} {1-\hat{a}(\hat{z}_0 + z_{0.975})} + \hat{z}_0$.
+
+```{r}
+bz = b.factor + qnorm( c(0.025, 1-0.025) )
+int.probs = pnorm( (bz)/(1 - acc*(bz)) + b.factor )
+(CI.BCa = quantile(r.boot$`r*`, probs = int.probs))
+```
+
+------------------------------------------------------------------------
+
+```{r}
+# collect all and compare 
+CIs = rbind(CI.tr, CI.t, CI.pct, CI.resid, CI.BCa)
+colnames(CIs) = c("lower", "upper")
+CIs = as.data.frame(CIs) %>% mutate(width=upper-lower)
+round(CIs, 3)
+```

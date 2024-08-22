@@ -1,0 +1,58 @@
+---
+title: "HW01"
+output: html_document
+date: "2024-03-21"
+student number : 2021-12659
+name : Park Yuna
+---
+
+# 2.7
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+p27 <- read.csv("p2.7.csv", header = TRUE)
+```
+
+## a
+```{r}
+lm.fit <- lm(purity ~ hydro, data = p27)
+```
+
+## b
+```{r}
+summary(lm.fit)
+```
+p-value : 0.00329 유의수준 (alpha = 0.05)보다 작으므로 H0를 기각할 수 있다. 
+## c
+
+R^2 : 0.3891
+
+## d
+```{r}
+confint(lm.fit, level = 0.95)
+```
+(4.479066, 19.12299)
+
+## e
+```{r}
+predict(lm.fit, data.frame(hydro = 1), interval = "confidence")
+```
+(87.51017, 91.81845)
+
+
+# 2.8
+
+## a
+```{r}
+cor(p27$hydro, p27$purity)
+```
+상관계수가 0.6237968이므로 양의 상관관계가 있다고 볼 수 있다.
+
+
+## b
+```{r}
+cor.test(p27$hydro, p27$purity)
+```
+p-value가 0.003291로 유의수준 5% 보다 작으므로 귀무가설을 기각할 수 있다. hydro와 purity는 선형적으로 상관관계가 있다. 
+
+## c
+(0.2503961, 0.8356439)
